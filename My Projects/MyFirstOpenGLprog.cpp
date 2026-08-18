@@ -13,6 +13,8 @@ using namespace std;
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow *window);
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 
 // //sets up source codes for shaders unnecesary now that shader class created (code moved into fragment shader and vertex shader files)
 // const char *vertexShaderSource = "#version 330 core\n"
@@ -40,6 +42,15 @@ void processInput(GLFWwindow *window);
     glm::vec3 up = glm::vec3(0.0f, 1.0f, 0.0f);
     float deltaTime = 0.0f;
     float lastFrame = 0.0f;
+    //vector for direction camera is facing
+    glm::vec3 direction;
+    //for turning left and right (value given is direction you start facing)
+    float yaw = -90.0f;
+    //for turning up and down (value given is direction you start facing)
+    float pitch = 0.0f;
+    float lastX = 400.0f, lastY = 300.0f;     //middle of window, current window size is 800x600 if changed this needs to change too
+    bool firstMouse = true;
+    float fov = 25.0f;
 
 int main(void)
 {
@@ -153,6 +164,15 @@ int main(void)
 
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
+
+    //calls mouse callback function every time mouse moves
+    glfwSetCursorPosCallback(window, mouse_callback);
+
+    //calls callback function every time you scroll
+    glfwSetScrollCallback(window, scroll_callback);
+
+    //tells GLFW to capture mouse (keeps in screen while tabbed in)
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     GLenum err = glewInit();
     if (err != GLEW_OK)
@@ -395,7 +415,7 @@ int main(void)
         // view = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
         //define projection matrix, first parameter fov, 2nd aspect ratio, 3rd and 4th near and far plane of frustum
         glm::mat4 projection = glm::mat4(1.0f);
-        projection = glm::perspective(glm::radians(45.0f), (800.0f / 600.0f), 0.1f, 100.0f);
+        projection = glm::perspective(glm::radians(fov), (800.0f / 600.0f), 0.1f, 100.0f);
         //new 3d stuff, retrieve matrix uniform locations
         unsigned int modelLoc = glGetUniformLocation(ourShader.ID, "model");
         unsigned int viewLoc = glGetUniformLocation(ourShader.ID, "view");
@@ -531,4 +551,57 @@ void processInput(GLFWwindow *window)
         cameraPos += glm::normalize(glm::cross(cameraFront, up)) * cameraSpeed;
     }
 }
-//turning next!!
+// code that allows turning with mouse
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn){
+
+    //turns doubles into floats
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    //makes sure camera doesn't jump when program starts
+    if (firstMouse){
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+
+    //gets change in mouse position for turning camera, y is reversed because y coordinates increase going down
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    //updates last values to new values for next movement calculations
+    lastX = xpos;
+    lastY = ypos;
+
+    //controls how sensitive turning is, big surprise
+    float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    //sets variables that change the direction you're facing
+    yaw += xoffset;
+    pitch += yoffset;
+
+    //clamps pitch preventing look at flip and weird inversion stuff
+    if(pitch > 89.0f)
+        pitch = 89.0f;
+    if(pitch < -89.0f)
+        pitch = -89.0f;
+
+    //sets direction vector with new ptch and yaw using this funny formula
+    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.y = sin(glm::radians(pitch));
+    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(direction);
+}
+
+//adjusts fov by scrolling
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
+
+    //changes fov based on yoffset (how far you scroll ig)
+    fov -= (float)yoffset;
+    if (fov < 1.0f)
+        fov = 1.0f;
+    if (fov > 45.0f)
+        fov = 45.0f;
+}
