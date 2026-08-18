@@ -112,4 +112,56 @@ int main(void)
         -0.5f,  0.5f, -0.5f
     };
 
+    unsigned int VBO;
+
+    unsigned int VAO;
+
+    glGenVertexArrays(1, &VAO);
+
+    glGenBuffers(1, &VBO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+    glBindVertexArray(VAO);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    unsigned int lightCubeVAO;
+
+    glGenVertexArrays(1, &lightCubeVAO);
+    glBindVertexArray(lightCubeVAO);
+
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    while (!glfwWindowShouldClose(window))
+    {
+        float currentFrame = glfwGetTime();
+        deltaTime = currentFrame - lastFrame;
+        lastFrame = currentFrame;
+
+        processInput(window);
+
+        glClearColor(0.1f, 0.1f, 0.1f, 0.1f);
+        glClear(GL_DEPTH_BUFFER_BIT |GL_COLOR_BUFFER_BIT);
+
+        //add shaders once made
+
+        glm::mat4 view;
+        view = glm::lookAt(cameraPos,
+                           cameraPos + cameraFront,
+                           up);
+        glm::mat4 projection = glm::mat4(1.0f);
+        projection = glm::perspective(glm::radians(fov), (800.0f / 600.0f), 0.1f, 100.0f);
+        //more shader stuff
+
+        //transform + shader stuff
+
+        
+
+    }
 };
