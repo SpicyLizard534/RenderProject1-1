@@ -145,6 +145,7 @@ int main(void)
     GLFWwindow* window;
 
     /* Initialize the library */
+    glfwInit();
     if (!glfwInit())
         return -1;
 
