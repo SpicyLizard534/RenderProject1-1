@@ -29,6 +29,9 @@ float lastX = 400.0f, lastY = 300.0f;
 bool firstMouse = true;
 float fov = 25.0f;
 
+//new variable for position of light
+glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
 //its the main function
 
 int main(void)
@@ -66,7 +69,9 @@ int main(void)
 
     glEnable(GL_DEPTH_TEST);
 
-    //need to put shaders here------------------------------------------------------------------------
+    //initialize shaders, lightsources have a different fragment shader so lightsources don't effect the appearance of light sources
+    Shader lightingShader("ShaderFolder/lightingvertexshader1.vs", "ShaderFolder/lightingfragmentshader1.fs");
+    Shader lightCubeShader("ShaderFolder/lightingvertexshader1.vs", "ShaderFolder/lighting(source)fragmentshader1.fs");
 
     float vertices[] = {
         -0.5f, -0.5f, -0.5f,
@@ -114,16 +119,16 @@ int main(void)
 
     unsigned int VBO;
 
-    unsigned int VAO;
+    unsigned int cubeVAO;
 
-    glGenVertexArrays(1, &VAO);
+    glGenVertexArrays(1, &cubeVAO);
 
     glGenBuffers(1, &VBO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindVertexArray(VAO);
+    glBindVertexArray(cubeVAO);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -132,8 +137,6 @@ int main(void)
 
     glGenVertexArrays(1, &lightCubeVAO);
     glBindVertexArray(lightCubeVAO);
-
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -149,7 +152,11 @@ int main(void)
         glClearColor(0.1f, 0.1f, 0.1f, 0.1f);
         glClear(GL_DEPTH_BUFFER_BIT |GL_COLOR_BUFFER_BIT);
 
-        //add shaders once made
+        //set shader and draw cube
+        lightingShader.use();
+        lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+        //color of light effects color of cube (no red light to reflect no color red to be seen, multiplies light color by color of object)
+        lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
 
         glm::mat4 view;
         view = glm::lookAt(cameraPos,
@@ -157,11 +164,136 @@ int main(void)
                            up);
         glm::mat4 projection = glm::mat4(1.0f);
         projection = glm::perspective(glm::radians(fov), (800.0f / 600.0f), 0.1f, 100.0f);
-        //more shader stuff
+        lightingShader.setMat4("projection", projection);
+        lightingShader.setMat4("view", view);
 
-        //transform + shader stuff
+        glm::mat4 model = glm::mat4(1.0f);
+        lightingShader.setMat4("model", model);
 
+        glBindVertexArray(cubeVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        //swap shaders and draw light cube
+        lightCubeShader.use();
+        lightCubeShader.setMat4("projection", projection);
+        lightCubeShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
+        model = glm::scale(model, glm::vec3(0.2f));
+        lightCubeShader.setMat4("model", model);
+
+        glBindVertexArray(lightCubeVAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
         
-
+        //swaps front and back buffers and gets inputs from user
+        glfwSwapBuffers(window);
+        glfwPollEvents();
     }
+
+    //deallocate all resources now that they are done being used(prevents memory leaks and stuff I think, good habits)
+    glDeleteVertexArrays(1, &cubeVAO);
+    glDeleteVertexArrays(1, &lightCubeVAO);
+    glDeleteBuffers(1, &VBO);
+
+    //clears all other glfw allocated resources
+    glfwTerminate();
+    return 0;
 };
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+    glViewport(0, 0, width, height);
+}
+
+void processInput(GLFWwindow *window)
+{
+    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
+        glfwSetWindowShouldClose(window, true);
+    }
+
+    if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+    {
+        mixValue += 0.0001f;
+        if (mixValue >= 1.0f)
+        {
+            mixValue = 1.0f;
+        }
+    }
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+    {
+        mixValue -= 0.0001f;
+        if (mixValue <= 0.0f)
+        {
+            mixValue = 0.0f;
+        }
+    }
+    //camera controls
+    //const float cameraSpeed = 0.05f; // no need for adjustment because delta time is awesome
+    float cameraSpeed = 5.0f * deltaTime;
+    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS){
+        cameraPos += cameraSpeed * cameraFront;
+    }
+    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS){
+        cameraPos -= cameraSpeed * cameraFront;
+    }
+    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS){
+        cameraPos -= glm::normalize(glm::cross(cameraFront, up)) * cameraSpeed;
+    }
+    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS){
+        cameraPos += glm::normalize(glm::cross(cameraFront, up)) * cameraSpeed;
+    }
+}
+// code that allows turning with mouse
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn){
+
+    //turns doubles into floats
+    float xpos = static_cast<float>(xposIn);
+    float ypos = static_cast<float>(yposIn);
+
+    //makes sure camera doesn't jump when program starts
+    if (firstMouse){
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+
+    //gets change in mouse position for turning camera, y is reversed because y coordinates increase going down
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos;
+    //updates last values to new values for next movement calculations
+    lastX = xpos;
+    lastY = ypos;
+
+    //controls how sensitive turning is, big surprise
+    float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    //sets variables that change the direction you're facing
+    yaw += xoffset;
+    pitch += yoffset;
+
+    //clamps pitch preventing look at flip and weird inversion stuff
+    if(pitch > 89.0f)
+        pitch = 89.0f;
+    if(pitch < -89.0f)
+        pitch = -89.0f;
+
+    //sets direction vector with new ptch and yaw using this funny formula
+    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    direction.y = sin(glm::radians(pitch));
+    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    cameraFront = glm::normalize(direction);
+}
+
+//adjusts fov by scrolling
+void scroll_callback(GLFWwindow* window, double xoffset, double yoffset){
+
+    //changes fov based on yoffset (how far you scroll ig)
+    fov -= (float)yoffset;
+    if (fov < 1.0f)
+        fov = 1.0f;
+    if (fov > 45.0f)
+        fov = 45.0f;
+}
