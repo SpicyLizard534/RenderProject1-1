@@ -72,6 +72,8 @@ int main(void)
     //initialize shaders, lightsources have a different fragment shader so lightsources don't effect the appearance of light sources
     Shader lightingShader("ShaderFolder/lightingvertexshader1.vs", "ShaderFolder/lightingfragmentshader1.fs");
     Shader lightCubeShader("ShaderFolder/lighting(source)vertexshader1.vs", "ShaderFolder/lighting(source)fragmentshader1.fs");
+    //lighting calculations done in vertex shader instead of fragment, called Gouraud method (replaces other above using Phong) (not very noticeable on cube but fun)
+    //Shader lightingShader("ShaderFolder/lightingvertexshader1(Gouraud).vs", "ShaderFolder/lightingfragmentshader1(Gouraud).fs");
 
     //adding normals to vertices (could be calculated but we aren't for tutorial?)
     float vertices[] = {
@@ -188,9 +190,9 @@ int main(void)
         lightCubeShader.setMat4("projection", projection);
         lightCubeShader.setMat4("view", view);
         model = glm::mat4(1.0f);
-        lightPos.x = sin((float)glfwGetTime());
-        lightPos.y = cos((float)glfwGetTime());
-        lightPos.z = cos((float)glfwGetTime());
+        lightPos.x = sin((float)glfwGetTime()) * 2;
+        lightPos.y = cos((float)glfwGetTime()) * 2;
+        lightPos.z = cos((float)glfwGetTime()) * 2;
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.2f));
         lightCubeShader.setMat4("model", model);
