@@ -161,14 +161,38 @@ int main(void)
         glClear(GL_DEPTH_BUFFER_BIT |GL_COLOR_BUFFER_BIT);
 
         //set shader and draw cube
+        //this part sets light properties
         lightingShader.use();
-        lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
+        //these are no longer needed with structs
+        // lightingShader.setVec3("objectColor", 1.0f, 0.5f, 0.31f);
         //color of light effects color of cube (no red light to reflect no color red to be seen, multiplies light color by color of object)
-        lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
+        // lightingShader.setVec3("lightColor", 1.0f, 1.0f, 1.0f);
         //position of light given to get direction light is coming from for calculations
-        lightingShader.setVec3("lightPos", lightPos);
+        // lightingShader.setVec3("lightPos", lightPos);
         //position of camera given to get direction of camera for calculations
         lightingShader.setVec3("viewPos", cameraPos);
+        lightingShader.setVec3("light.position", lightPos);
+        glm::vec3 lightColor;
+        //rgb light
+        lightColor.x = static_cast<float>(sin(glfwGetTime() * 2.0));
+        lightColor.y = static_cast<float>(sin(glfwGetTime() * 0.7));
+        lightColor.z = static_cast<float>(sin(glfwGetTime() * 1.3));
+        //whit light
+        // lightColor.x = static_cast<float>(1.0);
+        // lightColor.y = static_cast<float>(1.0);
+        // lightColor.z = static_cast<float>(1.0);
+        glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);      //decreases influence
+        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);  //low influence again
+        lightingShader.setVec3("light.ambient", ambientColor);
+        lightingShader.setVec3("light.diffuse", diffuseColor);
+        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+
+
+        //set cube materials
+        lightingShader.setVec3("material.ambient", 1.0f, 0.5f, 0.31f);
+        lightingShader.setVec3("material.diffuse", 1.0f, 0.5f, 0.31f);
+        lightingShader.setVec3("material.specular", 0.5f, 0.5f, 0.5f);
+        lightingShader.setFloat("material.shininess", 32.0f);
 
         glm::mat4 view;
         view = glm::lookAt(cameraPos,
@@ -189,6 +213,11 @@ int main(void)
         lightCubeShader.use();
         lightCubeShader.setMat4("projection", projection);
         lightCubeShader.setMat4("view", view);
+        //set color of light
+        lightCubeShader.setFloat("light.r", lightColor.x);
+        lightCubeShader.setFloat("light.g", lightColor.y);
+        lightCubeShader.setFloat("light.b", lightColor.z);
+        //set light pos
         model = glm::mat4(1.0f);
         lightPos.x = sin((float)glfwGetTime()) * 2;
         lightPos.y = cos((float)glfwGetTime()) * 2;
