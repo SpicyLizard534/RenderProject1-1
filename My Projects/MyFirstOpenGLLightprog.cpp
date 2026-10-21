@@ -73,7 +73,7 @@ int main(void)
     glEnable(GL_DEPTH_TEST);
 
     //initialize shaders, lightsources have a different fragment shader so lightsources don't effect the appearance of light sources
-    Shader lightingShader("ShaderFolder/lightingvertexshader1.vs", "ShaderFolder/lightingfragmentshader1.fs");
+    Shader lightingShader("ShaderFolder/lightingflashlight.vs", "ShaderFolder/lightingflashlight.fs");
     Shader lightCubeShader("ShaderFolder/lighting(source)vertexshader1.vs", "ShaderFolder/lighting(source)fragmentshader1.fs");
     //lighting calculations done in vertex shader instead of fragment, called Gouraud method (replaces other above using Phong) (not very noticeable on cube but fun)
     //Shader lightingShader("ShaderFolder/lightingvertexshader1(Gouraud).vs", "ShaderFolder/lightingfragmentshader1(Gouraud).fs");
@@ -207,14 +207,15 @@ int main(void)
         // lightingShader.setVec3("lightPos", lightPos);
         //position of camera given to get direction of camera for calculations
         lightingShader.setVec3("viewPos", cameraPos);
-        //lightingShader.setVec3("light.position", lightPos); //unused while not using light position
-        lightingShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f); //(pointed down)
+        lightingShader.setVec3("light.position", cameraPos); //unused while not using light position currently positioned where you are
+        lightingShader.setVec3("light.direction", cameraFront); //light faces in direction you do
+        //lightingShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f); //(pointed down (from sky)) currently not using directional lighting
         glm::vec3 lightColor;
         //rgb light
         //lightColor.x = static_cast<float>(sin(glfwGetTime() * 2.0));
         //lightColor.y = static_cast<float>(sin(glfwGetTime() * 0.7));
         //lightColor.z = static_cast<float>(sin(glfwGetTime() * 1.3));
-        //whit light
+        //white light
         lightColor.x = static_cast<float>(1.0);
         lightColor.y = static_cast<float>(1.0);
         lightColor.z = static_cast<float>(1.0);
@@ -223,6 +224,11 @@ int main(void)
         lightingShader.setVec3("light.ambient", ambientColor);
         lightingShader.setVec3("light.diffuse", diffuseColor);
         lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+        lightingShader.setFloat("light.constant", 1.0); //stays as is
+        lightingShader.setFloat("light.linear", 0.09f); //is multiplied by distance
+        lightingShader.setFloat("light.quadratic", 0.032f); //is multiplied by distance squared
+        lightingShader.setFloat("light.innerCutOff", glm::cos(glm::radians(8.5f))); // full intensity of spotlight points out to an angle of 12.5 degrees away from direction facing, cosine of angle calculated before passing to shader as it saves on performance
+        lightingShader.setFloat("light.outerCutOff", glm::cos(glm::radians(10.5f))); //fading intensity of spotlight goes out an extra 2 degrees
 
         //set cube materials
         //no more ambient and cube already set
@@ -287,7 +293,7 @@ int main(void)
         lightCubeShader.setMat4("model", model);
 
         glBindVertexArray(lightCubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
         
         //swaps front and back buffers and gets inputs from user
         glfwSwapBuffers(window);
