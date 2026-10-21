@@ -124,6 +124,19 @@ int main(void)
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
     };
 
+    glm::vec3 cubePositions[] = {
+        glm::vec3( 0.0f,  0.0f,  0.0f), 
+        glm::vec3( 2.0f,  5.0f, -15.0f), 
+        glm::vec3(-1.5f, -2.2f, -2.5f),  
+        glm::vec3(-3.8f, -2.0f, -12.3f),  
+        glm::vec3( 2.4f, -0.4f, -3.5f),  
+        glm::vec3(-1.7f,  3.0f, -7.5f),  
+        glm::vec3( 1.3f, -2.0f, -2.5f),  
+        glm::vec3( 1.5f,  2.0f, -2.5f), 
+        glm::vec3( 1.5f,  0.2f, -1.5f), 
+        glm::vec3(-1.3f,  1.0f, -1.5f)  
+    };
+
     unsigned int VBO;
 
     unsigned int cubeVAO;
@@ -161,12 +174,15 @@ int main(void)
     unsigned int diffuseMap = loadTexture("container2.png");
     //black and white image, darker means less specular lighter means more specular, white=1.0 black=0.0
     unsigned int specularMap = loadTexture("container2_specular.png");
+    //matrix image for emission that isnt effected by lighting, unused for now
+    //unsigned int emissionMap = loadTexture("matrix.jpg");
 
 
     //shader config
     lightingShader.use();
     lightingShader.setInt("material.diffuse", 0);
     lightingShader.setInt("material.specular", 1);
+    lightingShader.setInt("material.emission", 2);
 
 
     while (!glfwWindowShouldClose(window))
@@ -191,16 +207,17 @@ int main(void)
         // lightingShader.setVec3("lightPos", lightPos);
         //position of camera given to get direction of camera for calculations
         lightingShader.setVec3("viewPos", cameraPos);
-        lightingShader.setVec3("light.position", lightPos);
+        //lightingShader.setVec3("light.position", lightPos); //unused while not using light position
+        lightingShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f); //(pointed down)
         glm::vec3 lightColor;
         //rgb light
-        lightColor.x = static_cast<float>(sin(glfwGetTime() * 2.0));
-        lightColor.y = static_cast<float>(sin(glfwGetTime() * 0.7));
-        lightColor.z = static_cast<float>(sin(glfwGetTime() * 1.3));
+        //lightColor.x = static_cast<float>(sin(glfwGetTime() * 2.0));
+        //lightColor.y = static_cast<float>(sin(glfwGetTime() * 0.7));
+        //lightColor.z = static_cast<float>(sin(glfwGetTime() * 1.3));
         //whit light
-        // lightColor.x = static_cast<float>(1.0);
-        // lightColor.y = static_cast<float>(1.0);
-        // lightColor.z = static_cast<float>(1.0);
+        lightColor.x = static_cast<float>(1.0);
+        lightColor.y = static_cast<float>(1.0);
+        lightColor.z = static_cast<float>(1.0);
         glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);      //decreases influence
         glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);  //low influence again
         lightingShader.setVec3("light.ambient", ambientColor);
@@ -234,8 +251,23 @@ int main(void)
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, specularMap);
 
+        //binds emission map not active for now
+        //glActiveTexture(GL_TEXTURE2);
+        //glBindTexture(GL_TEXTURE_2D, emissionMap);
+
         glBindVertexArray(cubeVAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);  //replaced for for loop to draw more cubes instead
+
+        for(unsigned int i = 0; i < 10; i++)
+        {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, cubePositions[i]);
+            float angle = 20.0f * i * (float)glfwGetTime();
+            model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            lightingShader.setMat4("model", model);
+
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
         //swap shaders and draw light cube
         lightCubeShader.use();

@@ -11,10 +11,13 @@ struct Material {
     float shininess;
     //added for controlling specular
     sampler2D specular;
+    //added for emission map. see more info with commented out below if want emission
+    //sampler2D emission;
 };
 
 struct Light {
-    vec3 position;
+    //vec3 position; //commented out for directional lighting instead
+    vec3 direction;
 
     vec3 ambient;
     vec3 diffuse;
@@ -37,7 +40,8 @@ void main()
 {
     //both are normals because magnitude doesn't really matter just direction
     vec3 norm = normalize(Normal);
-    vec3 lightDir = normalize(light.position - FragPos);
+    //vec3 lightDir = normalize(light.position - FragPos); //light direction using position
+    vec3 lightDir = normalize(-light.direction); //light direction using direction value instead, value is negated because defined as coming from source
 
     //get diffuse(range 0-1) from dot product of face normal and direction of light, greater angle between the two = darker diffuse
     float diff = max(dot(norm, lightDir), 0.0);
@@ -49,12 +53,16 @@ void main()
     vec3 ambient = vec3(texture(material.diffuse, TexCoords)) * light.ambient;
 
     //set specular strength (how big of effect it has), and also do calculations for specular
-    float specularStrength = 0.5;
+    //float specularStrength = 0.5;
     vec3 viewDir = normalize(viewPos - FragPos);
     vec3 reflectDir = reflect(-lightDir, norm);
     float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
     vec3 specular = vec3(texture(material.specular, TexCoords)) * spec * light.specular;
 
+    //emission turned off because I dont want to use it right now but tunred on and given an image it displays it uneffected by light
+    //vec3 emission = texture(material.emission, TexCoords).rgb;
+
+    //vec3 result = (ambient + diffuse + specular + emission); use if using emission
     vec3 result = (ambient + diffuse + specular);
     FragColor = vec4(result, 1.0);
 }
