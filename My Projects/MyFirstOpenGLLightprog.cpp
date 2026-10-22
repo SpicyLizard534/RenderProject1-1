@@ -73,7 +73,7 @@ int main(void)
     glEnable(GL_DEPTH_TEST);
 
     //initialize shaders, lightsources have a different fragment shader so lightsources don't effect the appearance of light sources
-    Shader lightingShader("ShaderFolder/lightingflashlight.vs", "ShaderFolder/lightingflashlight.fs");
+    Shader lightingShader("ShaderFolder/lightingmultilight.vs", "ShaderFolder/lightingmultilight.fs");
     Shader lightCubeShader("ShaderFolder/lighting(source)vertexshader1.vs", "ShaderFolder/lighting(source)fragmentshader1.fs");
     //lighting calculations done in vertex shader instead of fragment, called Gouraud method (replaces other above using Phong) (not very noticeable on cube but fun)
     //Shader lightingShader("ShaderFolder/lightingvertexshader1(Gouraud).vs", "ShaderFolder/lightingfragmentshader1(Gouraud).fs");
@@ -123,7 +123,7 @@ int main(void)
         -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
         -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
     };
-
+    //positions of cubes
     glm::vec3 cubePositions[] = {
         glm::vec3( 0.0f,  0.0f,  0.0f), 
         glm::vec3( 2.0f,  5.0f, -15.0f), 
@@ -135,6 +135,13 @@ int main(void)
         glm::vec3( 1.5f,  2.0f, -2.5f), 
         glm::vec3( 1.5f,  0.2f, -1.5f), 
         glm::vec3(-1.3f,  1.0f, -1.5f)  
+    };
+    //
+    glm::vec3 pointLightPositions[] = {
+        glm::vec3(0.7f, 0.2f, 2.0f),
+        glm::vec3(2.3f, -3.3f, -4.0f),
+        glm::vec3(-4.0f, 2.0f, -12.0f),
+        glm::vec3(0.0f, 0.0f, -3.0f)
     };
 
     unsigned int VBO;
@@ -193,7 +200,7 @@ int main(void)
 
         processInput(window);
 
-        glClearColor(0.1f, 0.1f, 0.1f, 0.1f);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_DEPTH_BUFFER_BIT |GL_COLOR_BUFFER_BIT);
 
         //set shader and draw cube
@@ -207,28 +214,83 @@ int main(void)
         // lightingShader.setVec3("lightPos", lightPos);
         //position of camera given to get direction of camera for calculations
         lightingShader.setVec3("viewPos", cameraPos);
-        lightingShader.setVec3("light.position", cameraPos); //unused while not using light position currently positioned where you are
-        lightingShader.setVec3("light.direction", cameraFront); //light faces in direction you do
+
+        //one light set up commented out
+        //lightingShader.setVec3("light.position", cameraPos); //unused while not using light position currently positioned where you are
+        //lightingShader.setVec3("light.direction", cameraFront); //light faces in direction you do
         //lightingShader.setVec3("light.direction", -0.2f, -1.0f, -0.3f); //(pointed down (from sky)) currently not using directional lighting
+        
         glm::vec3 lightColor;
         //rgb light
         //lightColor.x = static_cast<float>(sin(glfwGetTime() * 2.0));
         //lightColor.y = static_cast<float>(sin(glfwGetTime() * 0.7));
         //lightColor.z = static_cast<float>(sin(glfwGetTime() * 1.3));
         //white light
-        lightColor.x = static_cast<float>(1.0);
-        lightColor.y = static_cast<float>(1.0);
-        lightColor.z = static_cast<float>(1.0);
-        glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f);      //decreases influence
-        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.2f);  //low influence again
-        lightingShader.setVec3("light.ambient", ambientColor);
-        lightingShader.setVec3("light.diffuse", diffuseColor);
-        lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
-        lightingShader.setFloat("light.constant", 1.0); //stays as is
-        lightingShader.setFloat("light.linear", 0.09f); //is multiplied by distance
-        lightingShader.setFloat("light.quadratic", 0.032f); //is multiplied by distance squared
-        lightingShader.setFloat("light.innerCutOff", glm::cos(glm::radians(8.5f))); // full intensity of spotlight points out to an angle of 12.5 degrees away from direction facing, cosine of angle calculated before passing to shader as it saves on performance
-        lightingShader.setFloat("light.outerCutOff", glm::cos(glm::radians(10.5f))); //fading intensity of spotlight goes out an extra 2 degrees
+        lightColor.x = static_cast<float>(0.2);
+        lightColor.y = static_cast<float>(0.0);
+        lightColor.z = static_cast<float>(0.0);
+        glm::vec3 diffuseColor = lightColor * glm::vec3(0.5f, 0.0f, 0.0f);      //decreases influence
+        glm::vec3 ambientColor = diffuseColor * glm::vec3(0.0f);  //low influence again
+
+        //again one light set up commented out for multilight setup
+        //lightingShader.setVec3("light.ambient", ambientColor);
+        //lightingShader.setVec3("light.diffuse", diffuseColor);
+        //lightingShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+        //lightingShader.setFloat("light.constant", 1.0); //stays as is
+        //lightingShader.setFloat("light.linear", 0.09f); //is multiplied by distance
+        //lightingShader.setFloat("light.quadratic", 0.032f); //is multiplied by distance squared
+        //lightingShader.setFloat("light.innerCutOff", glm::cos(glm::radians(8.5f))); // full intensity of spotlight points out to an angle of 12.5 degrees away from direction facing, cosine of angle calculated before passing to shader as it saves on performance
+        //lightingShader.setFloat("light.outerCutOff", glm::cos(glm::radians(10.5f))); //fading intensity of spotlight goes out an extra 2 degrees
+
+        //currently all info is passed manually but vectors variables can also be passed in for ease of use
+        //pass directional light info to fragment shader
+        lightingShader.setVec3("dirLight.direction", -0.2f, 1.0f, -0.3f);
+        lightingShader.setVec3("dirLight.ambient", 0.0f, 0.0f, 0.0f);
+        lightingShader.setVec3("dirLight.diffuse", 0.0f, 0.0f, 0.0f);
+        lightingShader.setVec3("dirLight.specular", 0.0f, 0.0f, 0.0f);
+        //pass point light 1 info to fragment shader
+        lightingShader.setVec3("pointLights[0].position", pointLightPositions[0]);
+        lightingShader.setVec3("pointLights[0].ambient", ambientColor);
+        lightingShader.setVec3("pointLights[0].diffuse", diffuseColor);
+        lightingShader.setVec3("pointLights[0].specular", diffuseColor);
+        lightingShader.setFloat("pointLights[0].constant", 1.0f);
+        lightingShader.setFloat("pointLights[0].linear", 0.09f);
+        lightingShader.setFloat("pointLights[0].quadratic", 0.032f);
+        //pass point light 2 info to fragment shader
+        lightingShader.setVec3("pointLights[1].position", pointLightPositions[1]);
+        lightingShader.setVec3("pointLights[1].ambient", ambientColor);
+        lightingShader.setVec3("pointLights[1].diffuse", diffuseColor);
+        lightingShader.setVec3("pointLights[1].specular", diffuseColor);
+        lightingShader.setFloat("pointLights[1].constant", 1.0f);
+        lightingShader.setFloat("pointLights[1].linear", 0.09f);
+        lightingShader.setFloat("pointLights[1].quadratic", 0.032f);
+        //pass point light 3 info to fragment shader
+        lightingShader.setVec3("pointLights[2].position", pointLightPositions[2]);
+        lightingShader.setVec3("pointLights[2].ambient", ambientColor);
+        lightingShader.setVec3("pointLights[2].diffuse", diffuseColor);
+        lightingShader.setVec3("pointLights[2].specular", diffuseColor);
+        lightingShader.setFloat("pointLights[2].constant", 1.0f);
+        lightingShader.setFloat("pointLights[2].linear", 0.09f);
+        lightingShader.setFloat("pointLights[2].quadratic", 0.032f);
+        //pass point light 4 info to fragment shader
+        lightingShader.setVec3("pointLights[3].position", pointLightPositions[3]);
+        lightingShader.setVec3("pointLights[3].ambient", ambientColor);
+        lightingShader.setVec3("pointLights[3].diffuse", diffuseColor);
+        lightingShader.setVec3("pointLights[3].specular", diffuseColor);
+        lightingShader.setFloat("pointLights[3].constant", 1.0f);
+        lightingShader.setFloat("pointLights[3].linear", 0.09f);
+        lightingShader.setFloat("pointLights[3].quadratic", 0.032f);
+        //pass spotlight info to fragment shader
+        lightingShader.setVec3("spotLight.position", cameraPos);
+        lightingShader.setVec3("spotlight.direction", cameraFront);
+        lightingShader.setVec3("spotlight.ambient", 1.0f, 1.0f, 1.0f);
+        lightingShader.setVec3("spotLight.diffuse", 0.8f, 0.8f, 0.8f);
+        lightingShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f);
+        lightingShader.setFloat("spotLight.constant", 1.0f);
+        lightingShader.setFloat("spotLight.linear", 0.09f);
+        lightingShader.setFloat("spotLight.quadratic", 0.032f);
+        lightingShader.setFloat("spotlight.innerCutOff", glm::cos(glm::radians(7.5f)));
+        lightingShader.setFloat("spotLight.outerCutOff", glm::cos(glm::radians(9.0f)));
 
         //set cube materials
         //no more ambient and cube already set
@@ -283,19 +345,30 @@ int main(void)
         lightCubeShader.setFloat("light.r", lightColor.x);
         lightCubeShader.setFloat("light.g", lightColor.y);
         lightCubeShader.setFloat("light.b", lightColor.z);
-        //set light pos
-        model = glm::mat4(1.0f);
-        lightPos.x = sin((float)glfwGetTime()) * 2;
-        lightPos.y = cos((float)glfwGetTime()) * 2;
-        lightPos.z = cos((float)glfwGetTime()) * 2;
-        model = glm::translate(model, lightPos);
-        model = glm::scale(model, glm::vec3(0.2f));
-        lightCubeShader.setMat4("model", model);
+        //set light pos //only sets up original light
+        //model = glm::mat4(1.0f);
+        //lightPos.x = sin((float)glfwGetTime()) * 2;
+        //lightPos.y = cos((float)glfwGetTime()) * 2;
+        //lightPos.z = cos((float)glfwGetTime()) * 2;
+        //model = glm::translate(model, lightPos);
+        //model = glm::scale(model, glm::vec3(0.2f));
+        //lightCubeShader.setMat4("model", model);
 
         glBindVertexArray(lightCubeVAO);
-        //glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        for(unsigned int i = 0; i < 4; i++)
+        {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, pointLightPositions[i]);
+            model = glm::scale(model, glm::vec3(0.2f));
+            lightCubeShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+
+        //glDrawArrays(GL_TRIANGLES, 0, 36); //only draws the original light
         
         //swaps front and back buffers and gets inputs from user
+
         glfwSwapBuffers(window);
         glfwPollEvents();
     }
